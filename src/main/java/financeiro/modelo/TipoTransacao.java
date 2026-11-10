@@ -1,5 +1,6 @@
 package financeiro.modelo;
 
 public enum TipoTransacao {
-    RECEITA
+    RECEITA,
+    DESPESA
 }
