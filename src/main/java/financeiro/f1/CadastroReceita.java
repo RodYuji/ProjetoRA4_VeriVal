@@ -14,6 +14,9 @@ public class CadastroReceita {
     }
 
     public void cadastrar(double valor, LocalDate data, String descricao) {
+        if (valor <= 0) {
+            throw new IllegalArgumentException("Valor deve ser maior que zero");
+        }
         repo.adicionar(new Transacao(valor, data, descricao, TipoTransacao.RECEITA));
     }
 }
