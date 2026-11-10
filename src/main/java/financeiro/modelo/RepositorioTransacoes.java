@@ -12,6 +12,6 @@ public class RepositorioTransacoes {
     }
 
     public List<Transacao> listarTodas() {
-        return transacoes;
+        return List.copyOf(transacoes);
     }
 }
