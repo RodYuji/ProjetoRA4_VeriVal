@@ -1,6 +1,6 @@
 package financeiro.f1;
 
-import financeiro.RepositorioTransacoes;
+import financeiro.modelo.RepositorioTransacoes;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.*;
