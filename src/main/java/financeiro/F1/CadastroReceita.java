@@ -1,4 +1,4 @@
-package financeiro.f1;
+package financeiro.F1;
 
 import financeiro.modelo.RepositorioTransacoes;
 import financeiro.modelo.TipoTransacao;

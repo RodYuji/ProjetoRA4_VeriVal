@@ -1,6 +1,6 @@
 package financeiro.steps;
 
-import financeiro.f1.CadastroReceita;
+import financeiro.F1.CadastroReceita;
 import financeiro.modelo.RepositorioTransacoes;
 import io.cucumber.java.pt.*;
 import java.time.LocalDate;
