@@ -1,6 +1,7 @@
 package financeiro.steps;
 
 import financeiro.F1.CadastroReceita;
+import financeiro.F2.CadastroDespesa;
 import financeiro.modelo.RepositorioTransacoes;
 import io.cucumber.java.pt.*;
 import java.time.LocalDate;
@@ -15,6 +16,14 @@ public class FinanceiroSteps {
     public void euCadastroUmaReceita(Double valor, String data, String descricao) {
         try {
             new CadastroReceita(repo).cadastrar(valor, LocalDate.parse(data), descricao);
+        } catch (IllegalArgumentException e) {
+            erro = e;
+        }
+    }
+    @Quando("eu cadastro uma despesa de {double} em {string} com descrição {string}")
+    public void euCadastroUmaDespesa(Double valor, String data, String descricao) {
+        try {
+            new CadastroDespesa(repo).cadastrar(valor, LocalDate.parse(data), descricao);
         } catch (IllegalArgumentException e) {
             erro = e;
         }
