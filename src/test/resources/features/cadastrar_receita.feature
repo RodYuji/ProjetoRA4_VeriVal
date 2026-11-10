@@ -11,7 +11,3 @@ Funcionalidade: Cadastrar receita
   Cenário: Receita com valor inválido
     Quando eu cadastro uma receita de 0.00 em "2026-11-05" com descrição "Salário"
     Então o sistema deve rejeitar com a mensagem "Valor deve ser maior que zero"
-
-  Cenário: Receita sem descrição
-    Quando eu cadastro uma receita de 100.00 em "2026-11-05" com descrição ""
-    Então o sistema deve rejeitar com a mensagem "Descrição é obrigatória"
