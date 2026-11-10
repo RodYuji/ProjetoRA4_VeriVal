@@ -10,6 +10,9 @@ public class Transacao {
     private final TipoTransacao tipo;
 
     public Transacao(double valor, LocalDate data, String descricao, TipoTransacao tipo) {
+        if (valor <= 0) {
+            throw new IllegalArgumentException("Valor deve ser maior que zero");
+        }
         this.valor = valor;
         this.data = data;
         this.descricao = descricao;
