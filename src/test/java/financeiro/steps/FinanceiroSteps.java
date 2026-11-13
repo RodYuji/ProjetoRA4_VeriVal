@@ -9,12 +9,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import financeiro.F7.DefinirOrcamento;
 import financeiro.modelo.RepositorioOrcamentos;
 import java.time.YearMonth;
+import financeiro.F8.VerificarLimite;
 
 public class FinanceiroSteps {
 
     private final RepositorioTransacoes repo = new RepositorioTransacoes();
     private Exception erro;
     private final RepositorioOrcamentos repoOrcamentos = new RepositorioOrcamentos();
+    private boolean limiteExcedido;
+    private double valorExcedente;
 
     @Quando("eu cadastro uma receita de {double} em {string} com descrição {string}")
     public void euCadastroUmaReceita(Double valor, String data, String descricao) {
@@ -63,5 +66,35 @@ public class FinanceiroSteps {
     @Então("o teto do mês {string} deve ser {double}")
     public void oTetoDoMesDeveSer(String mes, Double esperado) {
         assertEquals(esperado, repoOrcamentos.buscar(YearMonth.parse(mes)).orElseThrow());
+    }
+
+    // ===== F8 - Verificar alerta de limite excedido =====
+
+    @Dado("que existe uma despesa de {double} em {string}")
+    public void queExisteUmaDespesa(Double valor, String data) {
+        new CadastroDespesa(repo).cadastrar(valor, LocalDate.parse(data), "Despesa");
+    }
+
+    @Quando("eu verifico o limite do mês {string}")
+    public void euVerificoOLimite(String mes) {
+        try {
+            VerificarLimite verificador = new VerificarLimite(repo, repoOrcamentos);
+            YearMonth ym = YearMonth.parse(mes);
+            limiteExcedido = verificador.excedeu(ym);
+            valorExcedente = verificador.excedente(ym);
+        } catch (IllegalStateException e) {
+            erro = e;
+        }
+    }
+
+    @Então("o limite deve estar excedido em {double}")
+    public void oLimiteDeveEstarExcedido(Double excedente) {
+        assertTrue(limiteExcedido, "Era esperado limite excedido");
+        assertEquals(excedente, valorExcedente, 0.001);
+    }
+
+    @Então("o limite não deve estar excedido")
+    public void oLimiteNaoDeveEstarExcedido() {
+        assertFalse(limiteExcedido, "Não era esperado limite excedido");
     }
 }
