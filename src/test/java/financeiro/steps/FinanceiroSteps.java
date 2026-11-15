@@ -2,30 +2,42 @@ package financeiro.steps;
 
 import financeiro.F1.CadastroReceita;
 import financeiro.F2.CadastroDespesa;
+import financeiro.F3.GerenciadorCategorias;
+import financeiro.F4.ConsultaTransacoes;
+import financeiro.F5.CalculadoraSaldo;
+import financeiro.F6.ConsultaMaiorDespesa;
+import financeiro.F7.DefinirOrcamento;
+import financeiro.F8.VerificarLimite;
+import financeiro.modelo.RepositorioOrcamentos;
 import financeiro.modelo.RepositorioTransacoes;
+import financeiro.modelo.Transacao;
 import io.cucumber.java.pt.*;
 import java.time.LocalDate;
-import static org.junit.jupiter.api.Assertions.*;
-import financeiro.F5.CalculadoraSaldo;
-import financeiro.modelo.Transacao;
-import financeiro.F6.ConsultaMaiorDespesa;
-import java.util.NoSuchElementException;
-import io.cucumber.java.Before;
-import financeiro.F7.DefinirOrcamento;
-import financeiro.modelo.RepositorioOrcamentos;
 import java.time.YearMonth;
-import financeiro.F8.VerificarLimite;
+import java.util.List;
+import java.util.NoSuchElementException;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FinanceiroSteps {
 
     private final RepositorioTransacoes repo = new RepositorioTransacoes();
-    private Exception erro;
     private final RepositorioOrcamentos repoOrcamentos = new RepositorioOrcamentos();
+    private final GerenciadorCategorias gerenciadorCategorias = new GerenciadorCategorias();
+    private final ConsultaTransacoes consulta = new ConsultaTransacoes(repo);
+
+    private Exception erro;
+    private Exception erroCategoria;
+    private Exception erroConsulta;
+
     private boolean limiteExcedido;
     private double valorExcedente;
     private double saldo;
     private Transacao maiorDespesa;
+    private List<Transacao> listaMes;
 
+    // ==========================================
+    // F1 - Cadastrar Receita
+    // ==========================================
     @Quando("eu cadastro uma receita de {double} em {string} com descrição {string}")
     public void euCadastroUmaReceita(Double valor, String data, String descricao) {
         try {
@@ -34,6 +46,10 @@ public class FinanceiroSteps {
             erro = e;
         }
     }
+
+    // ==========================================
+    // F2 - Cadastrar Despesa
+    // ==========================================
     @Quando("eu cadastro uma despesa de {double} em {string} com descrição {string}")
     public void euCadastroUmaDespesa(Double valor, String data, String descricao) {
         try {
@@ -59,29 +75,92 @@ public class FinanceiroSteps {
         assertEquals(mensagem, erro.getMessage());
     }
 
-    // ===== F5 - Calcular Saldo Atual =====
+    // ==========================================
+    // F3 - Cadastrar Categoria (Giovanna)
+    // ==========================================
+    @Dado("que a categoria {string} já foi cadastrada")
+    public void queACategoriaJaFoiCadastrada(String nome) {
+        gerenciadorCategorias.cadastrar(nome);
+    }
+
+    @Quando("eu cadastro a categoria {string}")
+    public void euCadastroACategoria(String nome) {
+        try {
+            gerenciadorCategorias.cadastrar(nome);
+        } catch (IllegalArgumentException e) {
+            erroCategoria = e;
+        }
+    }
+
+    @Então("a categoria {string} deve estar cadastrada")
+    public void aCategoriaDeveEstarCadastrada(String nome) {
+        assertTrue(gerenciadorCategorias.existe(nome));
+    }
+
+    @Então("o sistema deve conter {int} categorias cadastradas")
+    public void oSistemaDeveConterCategoriasCadastradas(Integer quantidade) {
+        assertEquals(quantidade, gerenciadorCategorias.listarTodas().size());
+    }
+
+    @Então("o sistema deve rejeitar a categoria com a mensagem {string}")
+    public void oSistemaDeveRejeitarACategoriaComAMensagem(String mensagemEsperada) {
+        assertNotNull(erroCategoria, "Esperava-se um erro, mas a operação foi aceita");
+        assertEquals(mensagemEsperada, erroCategoria.getMessage());
+    }
+
+    // ==========================================
+    // F4 - Listar Transações do Mês (Giovanna)
+    // ==========================================
+    @Quando("eu listo as transações do mês {int}")
+    public void euListoAsTransacoesDoMes(Integer mes) {
+        try {
+            listaMes = consulta.listarPorMes(mes);
+        } catch (IllegalArgumentException e) {
+            erroConsulta = e;
+        }
+    }
+
+    @Então("devem ser encontradas {int} transações")
+    public void devemSerEncontradasTransacoes(Integer qtd) {
+        assertEquals(qtd, listaMes.size());
+    }
+
+    @Então("o sistema deve rejeitar a consulta com a mensagem {string}")
+    public void oSistemaDeveRejeitarAConsultaComAMensagem(String msgEsperada) {
+        assertNotNull(erroConsulta, "Esperava-se um erro, mas nenhum foi lançado");
+        assertEquals(msgEsperada, erroConsulta.getMessage());
+    }
+
+    // ==========================================
+    // F5 - Calcular Saldo Atual (Emilly)
+    // ==========================================
     @Dado("que eu cadastrei uma receita de {double} em {string} com descrição {string}")
     public void queEuCadastreiUmaReceita(Double valor, String data, String descricao) {
         new CadastroReceita(repo).cadastrar(valor, LocalDate.parse(data), descricao);
     }
+
     @Dado("que eu cadastrei uma despesa de {double} em {string} com descrição {string}")
     public void queEuCadastreiUmaDespesa(Double valor, String data, String descricao) {
         new CadastroDespesa(repo).cadastrar(valor, LocalDate.parse(data), descricao);
     }
+
     @Quando("eu calculo o saldo atual")
     public void euCalculoOSaldoAtual() {
         saldo = new CalculadoraSaldo(repo).calcularSaldo();
     }
+
     @Então("o saldo atual deve ser {double}")
     public void oSaldoAtualDeveSer(Double esperado) {
         assertEquals(esperado, saldo, 0.001);
     }
 
-    // ===== F6 - Consultar Maior Despesa =====
+    // ==========================================
+    // F6 - Consultar Maior Despesa (Emilly)
+    // ==========================================
     @Dado("que nenhuma transação foi cadastrada")
     public void queNenhumaTransacaoFoiCadastrada() {
-        // Cada cenário já inicia com um repo novo e limpo, este passo serve como declaração explícita de pré-condição.
     }
+
     @Quando("eu consulto a maior despesa")
     public void euConsultoAMaiorDespesa() {
         try {
@@ -102,28 +181,19 @@ public class FinanceiroSteps {
         assertEquals("Nenhuma despesa cadastrada", erro.getMessage());
     }
 
-
-    // ===== F7 - Definir teto de gastos =====
-    private final financeiro.F3.GerenciadorCategorias gerenciadorCategorias = new financeiro.F3.GerenciadorCategorias();
-    private Exception erroCategoria;
-
+    // ==========================================
+    // F7 - Definir Teto de Gastos (Lucas)
+    // ==========================================
     @Dado("que o teto do mês {string} é {double}")
     public void queOTetoDoMesE(String mes, Double teto) {
         new DefinirOrcamento(repoOrcamentos).definir(YearMonth.parse(mes), teto);
-    @Dado("que a categoria {string} já foi cadastrada")
-    public void queACategoriaJaFoiCadastrada(String nome) {
-        gerenciadorCategorias.cadastrar(nome);
     }
 
     @Quando("eu defino o teto de {double} para o mês {string}")
     public void euDefinoOTeto(Double teto, String mes) {
-    @Quando("eu cadastro a categoria {string}")
-    public void euCadastroACategoria(String nome) {
         try {
-            gerenciadorCategorias.cadastrar(nome);
             new DefinirOrcamento(repoOrcamentos).definir(YearMonth.parse(mes), teto);
         } catch (IllegalArgumentException e) {
-            erroCategoria = e;
             erro = e;
         }
     }
@@ -131,38 +201,19 @@ public class FinanceiroSteps {
     @Então("o teto do mês {string} deve ser {double}")
     public void oTetoDoMesDeveSer(String mes, Double esperado) {
         assertEquals(esperado, repoOrcamentos.buscar(YearMonth.parse(mes)).orElseThrow());
-    @Então("a categoria {string} deve estar cadastrada")
-    public void aCategoriaDeveEstarCadastrada(String nome) {
-        assertTrue(gerenciadorCategorias.existe(nome));
     }
 
-    @Então("o sistema deve conter {int} categorias cadastradas")
-    public void oSistemaDeveConterCategoriasCadastradas(Integer quantidade) {
-        assertEquals(quantidade, gerenciadorCategorias.listarTodas().size());
-    }
-    // ===== F8 - Verificar alerta de limite excedido =====
-
+    // ==========================================
+    // F8 - Verificar Alerta de Limite Excedido (Lucas)
+    // ==========================================
     @Dado("que existe uma despesa de {double} em {string}")
     public void queExisteUmaDespesa(Double valor, String data) {
         new CadastroDespesa(repo).cadastrar(valor, LocalDate.parse(data), "Despesa");
-    @Então("o sistema deve rejeitar a categoria com a mensagem {string}")
-    public void oSistemaDeveRejeitarACategoriaComAMensagem(String mensagemEsperada) {
-        assertNotNull(erroCategoria, "Esperava-se um erro, mas a operação foi aceita");
-        assertEquals(mensagemEsperada, erroCategoria.getMessage());
     }
 
     @Quando("eu verifico o limite do mês {string}")
     public void euVerificoOLimite(String mes) {
-    private final financeiro.F4.ConsultaTransacoes consulta = new financeiro.F4.ConsultaTransacoes(repo);
-    private java.util.List<financeiro.modelo.Transacao> listaMes;
-    private Exception erroConsulta;
-
-    @Quando("eu listo as transações do mês {int}")
-    public void euListoAsTransacoesDoMes(Integer mes) {
         try {
-            listaMes = consulta.listarPorMes(mes);
-        } catch (IllegalArgumentException e) {
-            erroConsulta = e;
             VerificarLimite verificador = new VerificarLimite(repo, repoOrcamentos);
             YearMonth ym = YearMonth.parse(mes);
             limiteExcedido = verificador.excedeu(ym);
@@ -176,17 +227,10 @@ public class FinanceiroSteps {
     public void oLimiteDeveEstarExcedido(Double excedente) {
         assertTrue(limiteExcedido, "Era esperado limite excedido");
         assertEquals(excedente, valorExcedente, 0.001);
-    @Então("devem ser encontradas {int} transações")
-    public void devemSerEncontradasTransacoes(Integer qtd) {
-        assertEquals(qtd, listaMes.size());
     }
 
     @Então("o limite não deve estar excedido")
     public void oLimiteNaoDeveEstarExcedido() {
         assertFalse(limiteExcedido, "Não era esperado limite excedido");
-    @Então("o sistema deve rejeitar a consulta com a mensagem {string}")
-    public void oSistemaDeveRejeitarAConsultaComAMensagem(String msgEsperada) {
-        assertNotNull(erroConsulta, "Esperava-se um erro, mas nenhum foi lançado");
-        assertEquals(msgEsperada, erroConsulta.getMessage());
     }
 }
